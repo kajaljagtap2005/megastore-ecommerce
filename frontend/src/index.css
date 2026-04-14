@@ -1,0 +1,93 @@
+/* index.css */
+:root {
+  --primary: #007bff;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Smooth transitions for all elements */
+h1, h2, h3, p, span, div, nav {
+  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.product-card {
+  transition: var(--transition);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.product-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+}
+
+button {
+  transition: var(--transition);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+/* =========================================
+   MOBILE RESPONSIVENESS MAGIC
+========================================= */
+
+/* When the screen is smaller than 768px (Tablets and Phones) */
+@media (max-width: 768px) {
+  
+  /* 1. Make the Hero Text smaller on phones */
+  h1 {
+    font-size: 2.2rem !important;
+  }
+  
+  /* 2. Stack the Home page category buttons and search bar */
+  input[type="text"], input[type="email"], input[type="password"] {
+    width: 100% !important;
+  }
+
+  /* 3. Stack Checkout form columns and Admin Stats cards */
+  div[style*="flex: 2"], 
+  div[style*="flex: 1"] {
+    min-width: 100% !important;
+    flex: none !important;
+  }
+
+  /* 4. Fix padding on the edges so it doesn't touch the screen limits */
+  div[style*="padding: 40px"] {
+    padding: 20px !important;
+  }
+
+  /* 5. Ensure the Navbar links fit */
+  nav {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  /* 6. Fix Data Tables in the Admin Panel so they scroll sideways nicely on mobile */
+  table {
+    min-width: 600px; /* Forces table to stay wide and scrollable */
+  }
+  
+  /* 7. Stack Footer sections */
+  footer {
+    flex-direction: column !important;
+    text-align: center;
+    padding: 40px 20px !important;
+  }
+}
+
+/* Make images perfectly responsive globally */
+img {
+  max-width: 100%;
+  height: auto;
+}
