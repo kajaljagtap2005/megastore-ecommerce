@@ -91,3 +91,18 @@ img {
   max-width: 100%;
   height: auto;
 }
+.product-grid {
+  display: grid;
+  /* This is the magic line! It automatically creates columns based on screen size */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px; /* Adds breathing room between products */
+  padding: 20px;
+}
+
+/* Make sure product images don't stretch outside their boxes */
+.product-grid img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: 8px;
+}
