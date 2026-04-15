@@ -13,16 +13,13 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Replaced mock users with state for REAL database users
+  // REAL DATABASE STATES
   const [dbUsers, setDbUsers] = useState([]);
-
-  // Mock Orders (Until you link the orders backend we built!)
-  const [mockOrders] = useState([
-    { id: 'ORD-101', user: 'john@example.com', total: 299.99, status: 'Shipped' }
-  ]);
+  const [orders, setOrders] = useState([]); 
 
   const API_URL = "https://megastore-ecommerce.onrender.com";
 
+  // --- LIFECYCLE ---
   useEffect(() => {
     document.body.className = isDarkMode ? 'dark' : 'light';
   }, [isDarkMode]);
@@ -41,16 +38,27 @@ function App() {
       });
   }, []);
 
-  // Fetch real users only when Admin views the admin panel
+  // FETCH REAL USERS AND ORDERS FOR ADMIN
   useEffect(() => {
     if (currentUser?.role === 'admin' && view === 'admin') {
+      // 1. Fetch Users
       fetch(`${API_URL}/api/admin/users`)
         .then(res => res.json())
         .then(data => setDbUsers(data))
         .catch(err => console.error("Could not load users", err));
+        
+      // 2. Fetch Orders
+      fetch(`${API_URL}/api/admin/orders`)
+        .then(res => res.json())
+        .then(data => setOrders(data))
+        .catch(err => console.error("Could not load orders", err));
     }
   }, [currentUser, view]);
 
+  // CALCULATE LIVE REVENUE
+  const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+  // --- ACTIONS ---
   const addToCart = (product) => setCart([...cart, product]);
   
   const toggleLike = (productId) => {
@@ -61,15 +69,38 @@ function App() {
     }
   };
 
-  const handleCheckout = (e) => {
+  const handleCheckout = async (e) => {
     e.preventDefault();
     if(cart.length === 0) return alert("Cart is empty!");
-    alert("🎉 Order placed successfully!");
-    setCart([]);
-    setView('home');
+
+    const orderData = {
+      customerName: e.target.name.value,
+      customerEmail: e.target.email.value,
+      address: e.target.address.value,
+      phone: 'N/A', // Placeholder for now
+      totalAmount: cart.reduce((sum, item) => sum + item.price, 0),
+      items: cart
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/api/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
+      if (res.ok) {
+        alert("🎉 Order placed securely! Thank you for shopping with us.");
+        setCart([]);
+        setView('home');
+      } else {
+        alert("Failed to place order. Backend might be asleep!");
+      }
+    } catch(err) {
+      alert("Network error. Could not place order.");
+    }
   };
 
-  // REAL AUTHENTICATION LOGIC (Connected to Backend)
+  // REAL AUTHENTICATION
   const handleAuth = async (e) => {
     e.preventDefault();
     const email = e.target.email.value;
@@ -98,6 +129,7 @@ function App() {
     }
   };
 
+  // --- STYLES ---
   const inputStyle = { padding: '12px', borderRadius: '8px', border: '1px solid #ccc', width: '100%', marginBottom: '15px', background: isDarkMode ? '#222' : '#fff', color: isDarkMode ? '#fff' : '#000' };
   const cardStyle = { background: isDarkMode ? '#1a1a2e' : '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' };
   const tableStyle = { width: '100%', borderCollapse: 'collapse', marginTop: '20px', minWidth: '600px', textAlign: 'left' };
@@ -105,6 +137,7 @@ function App() {
 
   return (
     <div style={{ width: '100%' }}>
+      {/* NAVBAR */}
       <nav className="navbar">
         <div onClick={() => setView('home')} style={{ cursor: 'pointer' }}>
           <span style={{fontSize: '28px', color: '#e94560', fontWeight: 'bold'}}>MEGA</span><span style={{fontWeight: 300, fontSize: '28px'}}>STORE</span>
@@ -133,18 +166,17 @@ function App() {
         </div>
       </nav>
 
+      {/* MAIN CONTENT */}
       <main style={{ maxWidth: '1200px', margin: '40px auto', padding: '0 5%', minHeight: '70vh' }}>
         
+        {/* LOGIN / SIGNUP */}
         {view === 'login' && (
           <div style={{ maxWidth: '450px', margin: '0 auto', ...cardStyle }}>
             <h2 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '28px' }}>{authMode === 'login' ? 'Welcome Back' : 'Create Account'}</h2>
             <form onSubmit={handleAuth}>
               {authMode === 'signup' && <input name="name" type="text" placeholder="Full Name" required style={inputStyle} />}
-              
-              {/* NO MORE HARDCODED PASSWORDS! Completely clean inputs: */}
               <input name="email" type="email" placeholder="Email Address" required style={inputStyle} />
               <input name="password" type="password" placeholder="Password" required style={inputStyle} />
-              
               <button type="submit" style={{ width: '100%', padding: '14px', background: '#e94560', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
                 {authMode === 'login' ? 'Sign In' : 'Sign Up'}
               </button>
@@ -157,6 +189,7 @@ function App() {
           </div>
         )}
 
+        {/* HOME / SHOP */}
         {view === 'home' && (
           <>
             <div style={{ textAlign: 'center', marginBottom: '40px' }}>
@@ -170,7 +203,7 @@ function App() {
                   const isLiked = likedItems.includes(product.id);
                   return (
                     <div key={product.id} className="product-card" style={cardStyle}>
-                      <button onClick={() => toggleLike(product.id)} style={{ position: 'absolute', top: '15px', right: '15px', background: isDarkMode ? '#111' : '#fff', border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '1.5rem', cursor: 'pointer', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <button onClick={() => toggleLike(product.id)} style={{ position: 'absolute', top: '15px', right: '15px', background: isDarkMode ? '#111' : '#fff', border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '1.5rem', cursor: 'pointer', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
                         {isLiked ? '❤️' : '🤍'}
                       </button>
                       <img src={product.image} alt={product.name} style={{ width: '100%', height: '220px', objectFit: 'cover', borderRadius: '8px', marginBottom: '15px' }} />
@@ -185,6 +218,7 @@ function App() {
           </>
         )}
 
+        {/* CART */}
         {view === 'cart' && (
           <div style={{ maxWidth: '800px', margin: '0 auto', ...cardStyle }}>
             <h2 style={{ borderBottom: '2px solid #e94560', paddingBottom: '15px', marginBottom: '20px' }}>Your Shopping Cart</h2>
@@ -197,12 +231,14 @@ function App() {
                   </div>
                 ))}
                 <h3 style={{ textAlign: 'right', marginTop: '20px' }}>Total: <span style={{ color: '#e94560' }}>${cart.reduce((s, i) => s + i.price, 0).toFixed(2)}</span></h3>
+                
+                {/* Updated the Checkout Form to match the backend order fields */}
                 <form onSubmit={handleCheckout} style={{ marginTop: '40px' }}>
                   <h3>Shipping Details</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
-                    <input type="text" placeholder="Full Name" required style={inputStyle} />
-                    <input type="email" placeholder="Email" required style={inputStyle} />
-                    <textarea placeholder="Full Shipping Address" required style={{ height: '100px', ...inputStyle }}></textarea>
+                    <input name="name" type="text" placeholder="Full Name" required style={inputStyle} />
+                    <input name="email" type="email" placeholder="Email" required style={inputStyle} />
+                    <textarea name="address" placeholder="Full Shipping Address" required style={{ height: '100px', ...inputStyle }}></textarea>
                   </div>
                   <button type="submit" style={{ width: '100%', padding: '15px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer' }}>Place Secure Order</button>
                 </form>
@@ -211,6 +247,7 @@ function App() {
           </div>
         )}
 
+        {/* ADMIN PANEL */}
         {view === 'admin' && currentUser?.role === 'admin' && (
           <div className="admin-layout">
             <div style={{ width: '100%', maxWidth: '250px', ...cardStyle, padding: '20px', height: 'fit-content' }}>
@@ -223,9 +260,33 @@ function App() {
             </div>
 
             <div style={{ flex: 1, ...cardStyle, overflow: 'hidden' }}>
-              {adminTab === 'dashboard' && <h2>Executive Overview</h2>}
               
-              {/* THE REAL USERS TABLE */}
+              {/* DASHBOARD TAB WITH LIVE REVENUE */}
+              {adminTab === 'dashboard' && (
+                <div>
+                  <h2 style={{ marginBottom: '20px' }}>Executive Overview</h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                    
+                    <div style={{ padding: '20px', background: 'rgba(233, 69, 96, 0.1)', borderRadius: '8px', borderLeft: '4px solid #e94560' }}>
+                      <p style={{ margin: 0, opacity: 0.8 }}>Total Live Revenue</p>
+                      <h2 style={{ margin: '10px 0 0 0', fontSize: '2rem' }}>${totalRevenue.toFixed(2)}</h2>
+                    </div>
+                    
+                    <div style={{ padding: '20px', background: 'rgba(40, 167, 69, 0.1)', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
+                      <p style={{ margin: 0, opacity: 0.8 }}>Total Users</p>
+                      <h2 style={{ margin: '10px 0 0 0', fontSize: '2rem' }}>{dbUsers.length}</h2>
+                    </div>
+
+                    <div style={{ padding: '20px', background: 'rgba(0, 123, 255, 0.1)', borderRadius: '8px', borderLeft: '4px solid #007bff' }}>
+                      <p style={{ margin: 0, opacity: 0.8 }}>Total Orders</p>
+                      <h2 style={{ margin: '10px 0 0 0', fontSize: '2rem' }}>{orders.length}</h2>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+              
+              {/* USERS TAB */}
               {adminTab === 'users' && (
                 <div className="table-responsive">
                   <h2>Registered Users Database</h2>
@@ -249,37 +310,43 @@ function App() {
                       ))}
                     </tbody>
                   </table>
-                  {dbUsers.length === 0 && <p style={{marginTop: '20px', color: '#888'}}>No users found. Try creating an account!</p>}
                 </div>
               )}
 
+              {/* ORDERS TAB */}
               {adminTab === 'orders' && (
                 <div className="table-responsive">
-                  <h2>Order Management</h2>
+                  <h2>Live Order Management</h2>
                   <table style={tableStyle}>
                     <thead>
                       <tr>
                         <th style={{padding: '12px', borderBottom: '2px solid #e94560', color: '#e94560'}}>Order ID</th>
-                        <th style={{padding: '12px', borderBottom: '2px solid #e94560', color: '#e94560'}}>Customer</th>
+                        <th style={{padding: '12px', borderBottom: '2px solid #e94560', color: '#e94560'}}>Customer Name</th>
+                        <th style={{padding: '12px', borderBottom: '2px solid #e94560', color: '#e94560'}}>Email</th>
                         <th style={{padding: '12px', borderBottom: '2px solid #e94560', color: '#e94560'}}>Total</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {mockOrders.map(o => (
-                        <tr key={o.id}>
-                          <td style={{padding: '12px', borderBottom: '1px solid #444'}}>{o.id}</td>
-                          <td style={{padding: '12px', borderBottom: '1px solid #444'}}>{o.user}</td>
-                          <td style={{padding: '12px', borderBottom: '1px solid #444'}}>${o.total.toFixed(2)}</td>
-                        </tr>
-                      ))}
+                      {orders.length === 0 ? (
+                        <tr><td colSpan="4" style={{padding: '12px'}}>No orders have been placed yet.</td></tr>
+                      ) : (
+                        orders.map(o => (
+                          <tr key={o.id}>
+                            <td style={{padding: '12px', borderBottom: '1px solid #444'}}>#{o.id}</td>
+                            <td style={{padding: '12px', borderBottom: '1px solid #444'}}>{o.customerName}</td>
+                            <td style={{padding: '12px', borderBottom: '1px solid #444'}}>{o.customerEmail}</td>
+                            <td style={{padding: '12px', borderBottom: '1px solid #444'}} className="revenue-text">${o.totalAmount.toFixed(2)}</td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
               )}
+
             </div>
           </div>
         )}
-
       </main>
 
       <footer style={{ textAlign: 'center', padding: '40px', marginTop: '60px', borderTop: isDarkMode ? '1px solid #333' : '1px solid #ddd' }}>
