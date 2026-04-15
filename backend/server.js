@@ -71,6 +71,49 @@ db.run(`CREATE TABLE IF NOT EXISTS orders (
     console.log("📦 Orders table is ready!");
   }
 });
+// --- DATABASE: CREATE USERS TABLE ---
+db.run(`CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role TEXT DEFAULT 'customer',
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+)`, (err) => {
+  if (!err) {
+    console.log("👥 Users table is ready!");
+    // Secretly create your permanent Admin account if it doesn't exist
+    db.run(`INSERT OR IGNORE INTO users (name, email, password, role) VALUES ('Admin', 'admin@megastore.com', 'admin123', 'admin')`);
+  }
+});
+
+// --- API: SIGNUP ROUTE ---
+app.post('/api/signup', (req, res) => {
+  const { name, email, password } = req.body;
+  const sql = `INSERT INTO users (name, email, password) VALUES (?, ?, ?)`;
+  
+  db.run(sql, [name, email, password], function(err) {
+    if (err) return res.status(400).json({ error: "Email already exists or invalid data" });
+    res.status(201).json({ message: "User created", user: { id: this.lastID, name, email, role: 'customer' } });
+  });
+});
+
+// --- API: LOGIN ROUTE ---
+app.post('/api/login', (req, res) => {
+  const { email, password } = req.body;
+  db.get(`SELECT id, name, email, role FROM users WHERE email = ? AND password = ?`, [email, password], (err, user) => {
+    if (err || !user) return res.status(401).json({ error: "Invalid email or password" });
+    res.json({ message: "Login successful", user });
+  });
+});
+
+// --- API: ADMIN GET ALL USERS ---
+app.get('/api/admin/users', (req, res) => {
+  db.all(`SELECT id, name, email, role, createdAt FROM users ORDER BY createdAt DESC`, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: "Failed to fetch users" });
+    res.json(rows);
+  });
+});
 
     // 3. Create Default Admin Account
     await User.findOrCreate({
