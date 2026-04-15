@@ -1,56 +1,43 @@
-import { Link } from 'react-router-dom'
+import React from 'react';
 
-function Navbar({ cartCount, wishlistCount, isDarkMode, toggleDarkMode, user, handleLogout }) {
-  const navBg = isDarkMode ? 'rgba(18, 18, 18, 0.95)' : 'rgba(255, 255, 255, 0.8)';
-  const textColor = isDarkMode ? '#ffffff' : '#000000';
-  const borderColor = isDarkMode ? '#333333' : '#eeeeee';
+function Navbar({ setView, cartCount, likeCount, toggleDarkMode, isDarkMode, currentUser, handleLogout }) {
+  const navStyle = {
+    background: isDarkMode ? '#111' : '#fff',
+    color: isDarkMode ? '#fff' : '#333',
+    padding: '20px 50px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    borderBottom: isDarkMode ? '1px solid #333' : 'none'
+  };
+
+  const btnStyle = { background: 'transparent', color: 'inherit', border: 'none', fontSize: '16px', cursor: 'pointer', marginLeft: '20px', fontWeight: '500' };
 
   return (
-    <nav style={{ 
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-      padding: '15px 5%', position: 'sticky', top: 0, zIndex: 1000,
-      backgroundColor: navBg, borderBottom: `1px solid ${borderColor}`,
-      backdropFilter: 'blur(10px)', color: textColor
-    }}>
-      <h2 style={{ fontSize: '1.5rem', fontWeight: '800', letterSpacing: '-1px', margin: 0 }}>
-        MEGA<span style={{color: '#007bff'}}>STORE</span>
-      </h2>
-      
-      <div style={{ display: 'flex', gap: '25px', alignItems: 'center' }}>
-        <Link to="/" style={{ textDecoration: 'none', color: 'inherit', fontWeight: '600' }}>Home</Link>
-        
-        <Link to="/wishlist" style={{ textDecoration: 'none', color: 'inherit', position: 'relative' }}>
-          <span style={{ fontSize: '1.2rem' }}>💖</span>
-          {wishlistCount > 0 && <span style={badgeStyle}>{wishlistCount}</span>}
-        </Link>
-
-        <Link to="/cart" style={{ textDecoration: 'none', color: 'inherit', position: 'relative' }}>
-          <span style={{ fontSize: '1.2rem' }}>🛒</span>
-          {cartCount > 0 && <span style={badgeStyle}>{cartCount}</span>}
-        </Link>
-        
-        <button onClick={toggleDarkMode} style={{ cursor: 'pointer', border: 'none', background: 'none', fontSize: '1.2rem', color: 'inherit' }}>
-          {isDarkMode ? '☀️' : '🌙'}
+    <nav style={navStyle}>
+      <h1 style={{ margin: 0, cursor: 'pointer', fontSize: '28px', letterSpacing: '2px' }} onClick={() => setView('home')}>
+        <span style={{color: '#e94560'}}>MEGA</span>STORE
+      </h1>
+      <div>
+        <button onClick={toggleDarkMode} style={btnStyle}>
+          {isDarkMode ? '☀️ Light' : '🌙 Dark'}
         </button>
-
-        {user ? (
-          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-            <span style={{ fontWeight: '700' }}>{user.name}</span>
-            <button onClick={handleLogout} style={{ padding: '8px 15px', backgroundColor: '#ff4d4d', color: 'white', border: 'none', borderRadius: '50px', cursor: 'pointer' }}>Logout</button>
-          </div>
+        <button onClick={() => setView('home')} style={btnStyle}>Shop</button>
+        <button style={btnStyle}>❤️ Likes ({likeCount})</button>
+        <button onClick={() => setView('cart')} style={btnStyle}>🛒 Cart ({cartCount})</button>
+        
+        {currentUser ? (
+          <>
+            {currentUser.role === 'admin' && <button onClick={() => setView('admin')} style={{...btnStyle, color: '#e94560'}}>Admin</button>}
+            <button onClick={handleLogout} style={btnStyle}>Logout ({currentUser.name})</button>
+          </>
         ) : (
-          <Link to="/login">
-            <button style={{ padding: '10px 20px', backgroundColor: isDarkMode ? '#fff' : '#000', color: isDarkMode ? '#000' : '#fff', border: 'none', borderRadius: '50px', fontWeight: 'bold', cursor: 'pointer' }}>Login</button>
-          </Link>
+          <button onClick={() => setView('login')} style={btnStyle}>Login / Sign Up</button>
         )}
       </div>
     </nav>
-  )
+  );
 }
 
-const badgeStyle = {
-  position: 'absolute', top: '-8px', right: '-10px', backgroundColor: '#ff4d4d', color: 'white',
-  fontSize: '0.7rem', padding: '2px 6px', borderRadius: '10px', fontWeight: 'bold'
-};
-
-export default Navbar
+export default Navbar;
