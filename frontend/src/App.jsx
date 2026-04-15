@@ -81,7 +81,15 @@ function App() {
               } 
             />
           </Routes>
-        </div>
+        </div><div className="product-container">
+  {products.map(product => (
+    <div key={product.id} className="product-card">
+      <img src={product.image} alt={product.name} className="product-image" />
+      <h3>{product.name}</h3>
+      <p>${product.price}</p>
+    </div>
+  ))}
+</div>
 
         {/* 👈 NEW: The Footer sits at the bottom of the App! */}
         <Footer />
