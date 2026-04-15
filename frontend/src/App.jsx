@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import './App.css'; 
+import './index.css';
 
 function App() {
   // 1. Define 'products' as an empty list to prevent crashes
