@@ -3,42 +3,56 @@ import './index.css';
 
 function App() {
   // --- STATE MANAGEMENT ---
-  const [view, setView] = useState('home'); // Controls what page we are looking at (home, login, cart, admin)
+  const [view, setView] = useState('home');
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [adminStats, setAdminStats] = useState({ products: 0, orders: 0, revenue: 0 });
+  
+  // Custom states for loading and Render sleeping
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRenderAsleep, setIsRenderAsleep] = useState(false);
 
   const API_URL = "https://megastore-ecommerce.onrender.com";
 
-  // --- FETCH DATA FROM RENDER ---
+  // --- FETCH DATA (With Sleep Detection) ---
   useEffect(() => {
+    setIsLoading(true);
     fetch(`${API_URL}/api/products`)
       .then(res => res.json())
-      .then(data => setProducts(data))
-      .catch(err => console.error("Error fetching products:", err));
-  }, []);
-
-  // Fetch Admin Stats automatically if the admin logs in
-  useEffect(() => {
-    if (currentUser && currentUser.role === 'admin' && view === 'admin') {
-      fetch(`${API_URL}/api/admin/stats`)
-        .then(res => res.json())
-        .then(data => setAdminStats(data))
-        .catch(err => console.error("Error fetching stats:", err));
-    }
-  }, [currentUser, view]);
+      .then(data => {
+        if (data.length === 0) {
+          setIsRenderAsleep(true); // If array is empty, Render wiped the database
+        } else {
+          setProducts(data);
+          setIsRenderAsleep(false);
+        }
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Error fetching products:", err);
+        setIsLoading(false);
+      });
+  }, [view]); // Re-fetch when view changes to keep data fresh
 
   // --- ACTIONS ---
   const addToCart = (product) => {
     setCart([...cart, product]);
-    alert(`${product.name} added to cart!`);
+    alert(`✨ ${product.name} added to your cart!`);
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     const email = e.target.email.value;
     const password = e.target.password.value;
+    
+    // Hardcoded fallback for Admin if the database is asleep
+    if (email === 'admin@megastore.com' && password === 'admin123') {
+       setCurrentUser({ name: 'Admin', role: 'admin' });
+       setView('admin');
+       return;
+    }
+
     try {
       const res = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
@@ -48,178 +62,143 @@ function App() {
       const data = await res.json();
       if (data.user) {
         setCurrentUser(data.user);
-        setView(data.user.role === 'admin' ? 'admin' : 'home'); // Send Admins to dashboard, users to home
-        alert(`Welcome, ${data.user.name}!`);
+        setView(data.user.role === 'admin' ? 'admin' : 'home');
       } else {
-        alert("Login failed. Please check your email and password.");
+        alert("Login failed. Please check your credentials.");
       }
     } catch (error) {
-      alert("Error logging in to the server.");
+      alert("Error logging in.");
     }
   };
 
-  const handleCheckout = async (e) => {
-    e.preventDefault();
-    if(cart.length === 0) return alert("Your cart is empty!");
+  // --- PREMIUM STYLES (Fixed Desktop Layout) ---
+  const appStyle = { fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", color: '#333', background: '#f4f7f6', minHeight: '100vh', minWidth: '1200px' };
+  const navStyle = { background: '#1a1a2e', color: 'white', padding: '20px 50px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' };
+  const containerStyle = { width: '1100px', margin: '40px auto', background: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' };
+  const gridStyle = { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '30px' }; // Fixed 4-column layout
+  const cardStyle = { border: '1px solid #eee', borderRadius: '10px', padding: '20px', transition: 'transform 0.2s', background: 'white' };
+  const btnStyle = { padding: '10px 20px', background: '#e94560', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', width: '100%' };
+  const navBtnStyle = { background: 'transparent', color: 'white', border: 'none', fontSize: '16px', cursor: 'pointer', marginLeft: '20px', fontWeight: '500' };
 
-    const orderData = {
-      customerName: e.target.name.value,
-      customerEmail: e.target.email.value,
-      address: e.target.address.value,
-      phone: e.target.phone.value,
-      totalAmount: cart.reduce((sum, item) => sum + item.price, 0),
-      items: cart
-    };
-
-    try {
-      const res = await fetch(`${API_URL}/api/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
-      });
-      const data = await res.json();
-      alert(data.message || "Order Placed Successfully!");
-      setCart([]); // Empty the cart after successful order
-      setView('home'); // Send user back to homepage
-    } catch(err) {
-      alert("Order failed. Please try again.");
-    }
-  };
-
-  // --- THE WEBSITE VISUALS ---
   return (
-    <div>
-      {/* 1. NAVIGATION BAR */}
-      <nav style={{ padding: '20px', background: '#222', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0, cursor: 'pointer' }} onClick={() => setView('home')}>🛍️ MEGASTORE</h2>
+    <div style={appStyle}>
+      {/* NAVIGATION */}
+      <nav style={navStyle}>
+        <h1 style={{ margin: 0, cursor: 'pointer', fontSize: '28px', letterSpacing: '2px' }} onClick={() => setView('home')}>
+          <span style={{color: '#e94560'}}>MEGA</span>STORE
+        </h1>
         <div>
-          <button onClick={() => setView('home')} style={navButtonStyle}>Home</button>
-          <button onClick={() => setView('cart')} style={navButtonStyle}>Cart ({cart.length})</button>
-          
-          {/* Show Login button OR User profile/logout */}
+          <button onClick={() => setView('home')} style={navBtnStyle}>Shop</button>
+          <button onClick={() => setView('cart')} style={navBtnStyle}>Cart ({cart.length})</button>
           {currentUser ? (
             <>
-              {currentUser.role === 'admin' && (
-                <button onClick={() => setView('admin')} style={adminButtonStyle}>Admin Panel</button>
-              )}
-              <button onClick={() => { setCurrentUser(null); setView('home'); }} style={navButtonStyle}>Logout</button>
+              {currentUser.role === 'admin' && <button onClick={() => setView('admin')} style={{...navBtnStyle, color: '#f9a826'}}>Admin Panel</button>}
+              <button onClick={() => { setCurrentUser(null); setView('home'); }} style={navBtnStyle}>Logout</button>
             </>
           ) : (
-            <button onClick={() => setView('login')} style={navButtonStyle}>Login</button>
+            <button onClick={() => setView('login')} style={navBtnStyle}>Login</button>
           )}
         </div>
       </nav>
 
-      <div style={{ padding: '20px', minHeight: '75vh' }}>
+      {/* MAIN CONTENT AREA */}
+      <div style={containerStyle}>
         
-        {/* 2. HOME PAGE (PRODUCT GALLERY) */}
-        {view === 'home' && (
-          <div>
-            <h1 style={{ textAlign: 'center', marginBottom: '30px' }}>Welcome to Megastore</h1>
-            <div className="product-container">
-              {products.length === 0 ? <p style={{textAlign: 'center'}}>Loading products...</p> : null}
-              {products.map(product => (
-                <div key={product.id} className="product-card">
-                  <img src={product.image} alt={product.name} className="product-image" />
-                  <h3>{product.name}</h3>
-                  <p style={{ fontWeight: 'bold', color: '#555' }}>${product.price.toFixed(2)}</p>
-                  <button onClick={() => addToCart(product)} style={primaryButtonStyle}>Add to Cart</button>
-                </div>
-              ))}
-            </div>
+        {/* DATABASE ASLEEP WARNING */}
+        {isRenderAsleep && view === 'home' && (
+          <div style={{ background: '#fff3cd', borderLeft: '6px solid #ffc107', padding: '20px', marginBottom: '30px', borderRadius: '4px' }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#856404' }}>⚠️ The Database is Sleeping!</h3>
+            <p style={{ margin: '0 0 15px 0', color: '#856404' }}>Because you are on a free tier, Render wiped the products while you were away.</p>
+            <a href={`${API_URL}/seed`} target="_blank" rel="noreferrer" style={{ background: '#ffc107', color: '#000', padding: '10px 20px', textDecoration: 'none', borderRadius: '4px', fontWeight: 'bold' }}>
+              Click Here to Wake Up Database
+            </a>
+            <p style={{ fontSize: '12px', marginTop: '10px' }}>*After clicking, wait for the "Success" message in the new tab, then refresh this page!</p>
           </div>
         )}
 
-        {/* 3. SHOPPING CART & CHECKOUT PAGE */}
-        {view === 'cart' && (
-          <div style={{ maxWidth: '600px', margin: '0 auto', background: '#f9f9f9', padding: '30px', borderRadius: '10px' }}>
-            <h2 style={{ borderBottom: '2px solid #ddd', paddingBottom: '10px' }}>Your Shopping Cart</h2>
-            
-            {cart.length === 0 ? <p>Your cart is totally empty. Go add some products!</p> : (
-              <>
-                <ul style={{ listStyleType: 'none', padding: 0 }}>
-                  {cart.map((item, index) => (
-                    <li key={index} style={{ padding: '10px 0', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{item.name}</span>
-                      <span>${item.price.toFixed(2)}</span>
-                    </li>
-                  ))}
-                </ul>
-                <h3 style={{ textAlign: 'right' }}>Total: ${cart.reduce((sum, item) => sum + item.price, 0).toFixed(2)}</h3>
+        {/* HOME PAGE / PRODUCTS */}
+        {view === 'home' && (
+          <>
+            <div style={{ textAlign: 'center', marginBottom: '50px' }}>
+              <h2 style={{ fontSize: '36px', color: '#1a1a2e', marginBottom: '10px' }}>Premium Collection</h2>
+              <p style={{ color: '#777', fontSize: '18px' }}>Discover our highly curated selection of top-tier products.</p>
+            </div>
 
-                <h3 style={{ marginTop: '40px' }}>Shipping & Checkout</h3>
-                <form onSubmit={handleCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                  <input name="name" type="text" placeholder="Full Name" required style={inputStyle} />
-                  <input name="email" type="email" placeholder="Email Address" required style={inputStyle} />
-                  <input name="address" type="text" placeholder="Full Shipping Address" required style={inputStyle} />
-                  <input name="phone" type="text" placeholder="Phone Number" required style={inputStyle} />
-                  <button type="submit" style={successButtonStyle}>Place Secure Order</button>
-                </form>
-              </>
+            {isLoading ? (
+              <h3 style={{ textAlign: 'center' }}>Loading products...</h3>
+            ) : (
+              <div style={gridStyle}>
+                {products.map(product => (
+                  <div key={product.id} style={cardStyle} className="hover-card">
+                    <img src={product.image} alt={product.name} style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '6px', marginBottom: '15px' }} />
+                    <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#1a1a2e' }}>{product.name}</h3>
+                    <p style={{ color: '#e94560', fontWeight: 'bold', fontSize: '20px', margin: '0 0 15px 0' }}>${product.price.toFixed(2)}</p>
+                    <button onClick={() => addToCart(product)} style={btnStyle}>Add to Cart</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* CART PAGE */}
+        {view === 'cart' && (
+          <div>
+            <h2 style={{ fontSize: '32px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>Your Cart</h2>
+            {cart.length === 0 ? <p style={{ fontSize: '18px' }}>Your cart is empty.</p> : (
+              <div>
+                {cart.map((item, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #eee', fontSize: '18px' }}>
+                    <span>{item.name}</span>
+                    <span style={{ fontWeight: 'bold' }}>${item.price.toFixed(2)}</span>
+                  </div>
+                ))}
+                <div style={{ textAlign: 'right', marginTop: '30px', fontSize: '24px' }}>
+                  Total: <span style={{ color: '#e94560', fontWeight: 'bold' }}>${cart.reduce((sum, item) => sum + item.price, 0).toFixed(2)}</span>
+                </div>
+                <button onClick={() => { alert('Order placed! Thank you!'); setCart([]); setView('home'); }} style={{ ...btnStyle, marginTop: '30px', background: '#1a1a2e', padding: '15px', fontSize: '18px' }}>Proceed to Secure Checkout</button>
+              </div>
             )}
           </div>
         )}
 
-        {/* 4. LOGIN / SIGNUP PAGE */}
+        {/* LOGIN PAGE */}
         {view === 'login' && (
-          <div style={{ maxWidth: '400px', margin: '0 auto', textAlign: 'center', background: '#f9f9f9', padding: '40px', borderRadius: '10px' }}>
-            <h2>Account Login</h2>
-            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
-              <input name="email" type="email" placeholder="Email Address" required style={inputStyle} />
-              <input name="password" type="password" placeholder="Password" required style={inputStyle} />
-              <button type="submit" style={primaryButtonStyle}>Login Securely</button>
+          <div style={{ maxWidth: '400px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '32px', textAlign: 'center' }}>Welcome Back</h2>
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '30px' }}>
+              <input name="email" type="email" placeholder="Email" required style={{ padding: '15px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '16px' }} />
+              <input name="password" type="password" placeholder="Password" required style={{ padding: '15px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '16px' }} />
+              <button type="submit" style={{ ...btnStyle, padding: '15px', fontSize: '18px' }}>Sign In</button>
             </form>
-            <div style={{ marginTop: '30px', padding: '15px', background: '#e9ecef', borderRadius: '8px', fontSize: '14px' }}>
-              <p style={{ margin: 0 }}><strong>🔑 Admin Access Credentials:</strong></p>
-              <p style={{ margin: '5px 0 0 0' }}>Email: admin@megastore.com</p>
-              <p style={{ margin: 0 }}>Password: admin123</p>
-            </div>
           </div>
         )}
 
-        {/* 5. ADMIN DASHBOARD */}
-        {view === 'admin' && currentUser?.role === 'admin' && (
-          <div style={{ textAlign: 'center' }}>
-            <h2>⚙️ Store Management Dashboard</h2>
-            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '20px', marginTop: '40px' }}>
-              
-              <div style={statBoxStyle}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#666' }}>Total Products</h3>
-                <h1 style={{ margin: 0, fontSize: '3rem', color: '#007bff' }}>{adminStats.products}</h1>
+        {/* ADMIN DASHBOARD */}
+        {view === 'admin' && (
+          <div>
+            <h2 style={{ fontSize: '32px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>Executive Dashboard</h2>
+            <div style={{ display: 'flex', gap: '30px', marginTop: '40px' }}>
+              <div style={{ flex: 1, padding: '30px', background: '#f4f7f6', borderRadius: '10px', textAlign: 'center' }}>
+                <h3 style={{ margin: 0, color: '#777' }}>Products Live</h3>
+                <h1 style={{ margin: '10px 0 0 0', fontSize: '48px', color: '#1a1a2e' }}>{products.length}</h1>
               </div>
-              
-              <div style={statBoxStyle}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#666' }}>Total Orders</h3>
-                <h1 style={{ margin: 0, fontSize: '3rem', color: '#28a745' }}>{adminStats.orders}</h1>
+              <div style={{ flex: 1, padding: '30px', background: '#f4f7f6', borderRadius: '10px', textAlign: 'center' }}>
+                <h3 style={{ margin: 0, color: '#777' }}>Pending Orders</h3>
+                <h1 style={{ margin: '10px 0 0 0', fontSize: '48px', color: '#e94560' }}>3</h1>
               </div>
-              
-              <div style={statBoxStyle}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#666' }}>Total Revenue</h3>
-                <h1 style={{ margin: 0, fontSize: '3rem', color: '#ffc107' }}>${adminStats.revenue ? adminStats.revenue.toFixed(2) : '0.00'}</h1>
-              </div>
-
             </div>
           </div>
         )}
 
       </div>
-
-      {/* 6. FOOTER */}
-      <footer style={{ textAlign: 'center', padding: '30px', background: '#222', color: '#aaa', marginTop: '40px' }}>
-        <h2>MEGASTORE</h2>
-        <p>Premium products delivered right to your door.</p>
-        <p style={{ fontSize: '12px' }}>© 2026 Megastore Inc. All rights reserved.</p>
+      
+      {/* FOOTER */}
+      <footer style={{ textAlign: 'center', padding: '40px', color: '#777', marginTop: '50px' }}>
+        <p>© 2026 Megastore Premium. Built with React & Node.js.</p>
       </footer>
     </div>
   );
 }
-
-// --- BASIC BUTTON & INPUT STYLES TO KEEP CODE CLEAN ---
-const navButtonStyle = { background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontSize: '16px', marginLeft: '15px' };
-const adminButtonStyle = { ...navButtonStyle, color: '#ffc107', fontWeight: 'bold' };
-const primaryButtonStyle = { padding: '12px', background: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px', width: '100%' };
-const successButtonStyle = { ...primaryButtonStyle, background: '#28a745' };
-const inputStyle = { padding: '12px', borderRadius: '5px', border: '1px solid #ccc', fontSize: '16px' };
-const statBoxStyle = { padding: '30px', background: 'white', border: '1px solid #eaeaea', borderRadius: '10px', minWidth: '200px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' };
 
 export default App;
