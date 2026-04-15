@@ -13,7 +13,7 @@ function Login({ setUser }) {
   const handleCustomerSignup = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('http://localhost:5000/api/signup', {
+      const response = await fetch('https://megastore-ecommerce.onrender.com/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password })
@@ -36,7 +36,7 @@ function Login({ setUser }) {
   const handleCustomerLogin = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
+      const response = await fetch('https://megastore-ecommerce.onrender.com/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

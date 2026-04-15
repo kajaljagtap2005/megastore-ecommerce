@@ -18,7 +18,7 @@ function App() {
   const [storeProducts, setStoreProducts] = useState([])
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/products')
+    fetch('https://megastore-ecommerce.onrender.com/api/products')
       .then(response => response.json())
       .then(data => setStoreProducts(data))
       .catch(error => console.log("Failed to fetch database:", error));

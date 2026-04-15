@@ -8,11 +8,11 @@ function Admin() {
 
   const fetchData = async () => {
     try {
-      const statsRes = await fetch('http://localhost:5000/api/admin/stats');
+      const statsRes = await fetch('https://megastore-ecommerce.onrender.com/api/admin/stats');
       setDbStats(await statsRes.json());
-      const usersRes = await fetch('http://localhost:5000/api/users');
+      const usersRes = await fetch('https://megastore-ecommerce.onrender.com/api/users');
       setUsersList(await usersRes.json());
-      const ordersRes = await fetch('http://localhost:5000/api/orders');
+      const ordersRes = await fetch('https://megastore-ecommerce.onrender.com/api/orders');
       setOrdersList(await ordersRes.json());
     } catch (error) { console.log("Load failed", error); }
   }
