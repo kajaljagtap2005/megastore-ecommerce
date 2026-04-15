@@ -53,6 +53,25 @@ app.get('/seed', async (req, res) => {
       { name: "Mechanical Keyboard", price: 145.00, category: "Electronics", image: "https://images.unsplash.com/photo-1595225476474-87563907a212?w=500" }
     ]);
 
+    // Creates the Orders table if it doesn't exist yet
+db.run(`CREATE TABLE IF NOT EXISTS orders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customerName TEXT NOT NULL,
+  customerEmail TEXT NOT NULL,
+  address TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  totalAmount REAL NOT NULL,
+  items TEXT NOT NULL, -- We will save the cart items as a JSON string
+  status TEXT DEFAULT 'Processing',
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+)`, (err) => {
+  if (err) {
+    console.error("Error creating orders table:", err.message);
+  } else {
+    console.log("📦 Orders table is ready!");
+  }
+});
+
     // 3. Create Default Admin Account
     await User.findOrCreate({
       where: { email: 'admin@megastore.com' },
@@ -99,3 +118,41 @@ app.get('/api/users', async (req, res) => res.json(await User.findAll()));
 app.get('/api/orders', async (req, res) => res.json(await Order.findAll()));
 
 app.listen(5000, () => console.log("Server awake on 5000"));
+
+// --- PLACE A NEW ORDER ---
+app.post('/api/orders', (req, res) => {
+  const { customerName, customerEmail, address, phone, totalAmount, items } = req.body;
+
+  // Convert the array of cart items into a string so SQLite can save it
+  const itemsString = JSON.stringify(items);
+
+  const sql = `INSERT INTO orders (customerName, customerEmail, address, phone, totalAmount, items) 
+               VALUES (?, ?, ?, ?, ?, ?)`;
+               
+  const params = [customerName, customerEmail, address, phone, totalAmount, itemsString];
+
+  db.run(sql, params, function(err) {
+    if (err) {
+      console.error("Failed to save order:", err);
+      return res.status(500).json({ error: "Failed to process order" });
+    }
+    // Respond back to React with success!
+    res.status(201).json({ 
+      message: "Order placed successfully!", 
+      orderId: this.lastID 
+    });
+  });
+});
+
+// --- FETCH ALL ORDERS FOR ADMIN PANEL ---
+app.get('/api/admin/orders', (req, res) => {
+  const sql = `SELECT * FROM orders ORDER BY createdAt DESC`;
+  
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error("Failed to fetch orders:", err);
+      return res.status(500).json({ error: "Failed to fetch orders" });
+    }
+    res.json(rows);
+  });
+});
