@@ -38,20 +38,32 @@ function App() {
       });
   }, []);
 
-  // FETCH REAL USERS AND ORDERS FOR ADMIN
+  // --- ⚡ THE REAL-TIME ADMIN ENGINE ⚡ ---
   useEffect(() => {
     if (currentUser?.role === 'admin' && view === 'admin') {
-      // 1. Fetch Users
-      fetch(`${API_URL}/api/admin/users`)
-        .then(res => res.json())
-        .then(data => setDbUsers(data))
-        .catch(err => console.error("Could not load users", err));
-        
-      // 2. Fetch Orders
-      fetch(`${API_URL}/api/admin/orders`)
-        .then(res => res.json())
-        .then(data => setOrders(data))
-        .catch(err => console.error("Could not load orders", err));
+      
+      const fetchAdminData = () => {
+        // Fetch Real Users
+        fetch(`${API_URL}/api/admin/users`)
+          .then(res => res.json())
+          .then(data => setDbUsers(data))
+          .catch(err => console.error("Could not load users", err));
+          
+        // Fetch Real Orders
+        fetch(`${API_URL}/api/admin/orders`)
+          .then(res => res.json())
+          .then(data => setOrders(data))
+          .catch(err => console.error("Could not load orders", err));
+      };
+
+      // 1. Fetch instantly when admin logs in
+      fetchAdminData();
+
+      // 2. Refresh the data every 5 seconds for that "Real-Time" effect
+      const intervalId = setInterval(fetchAdminData, 5000);
+
+      // 3. Stop refreshing if they log out or leave the admin panel
+      return () => clearInterval(intervalId);
     }
   }, [currentUser, view]);
 
@@ -77,7 +89,7 @@ function App() {
       customerName: e.target.name.value,
       customerEmail: e.target.email.value,
       address: e.target.address.value,
-      phone: 'N/A', // Placeholder for now
+      phone: 'N/A', 
       totalAmount: cart.reduce((sum, item) => sum + item.price, 0),
       items: cart
     };
@@ -100,7 +112,7 @@ function App() {
     }
   };
 
-  // REAL AUTHENTICATION
+  // REAL AUTHENTICATION & AUTOMATIC REDIRECT
   const handleAuth = async (e) => {
     e.preventDefault();
     const email = e.target.email.value;
@@ -120,6 +132,7 @@ function App() {
       
       if (res.ok) {
         setCurrentUser(data.user);
+        // THIS LINE IS THE MAGIC: It checks if the user is an admin and instantly redirects them!
         setView(data.user.role === 'admin' ? 'admin' : 'home');
       } else {
         alert(data.error || "Authentication failed. Check your details.");
@@ -232,7 +245,6 @@ function App() {
                 ))}
                 <h3 style={{ textAlign: 'right', marginTop: '20px' }}>Total: <span style={{ color: '#e94560' }}>${cart.reduce((s, i) => s + i.price, 0).toFixed(2)}</span></h3>
                 
-                {/* Updated the Checkout Form to match the backend order fields */}
                 <form onSubmit={handleCheckout} style={{ marginTop: '40px' }}>
                   <h3>Shipping Details</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
@@ -283,6 +295,7 @@ function App() {
                     </div>
 
                   </div>
+                  <p style={{marginTop: '20px', fontSize: '14px', color: '#888'}}>*Data automatically refreshes every 5 seconds.</p>
                 </div>
               )}
               
@@ -310,6 +323,7 @@ function App() {
                       ))}
                     </tbody>
                   </table>
+                  {dbUsers.length === 0 && <p style={{marginTop: '20px', color: '#888'}}>No users found. Try creating an account!</p>}
                 </div>
               )}
 
