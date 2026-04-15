@@ -116,23 +116,27 @@ app.get('/api/admin/orders', (req, res) => {
 // --- 5. THE MAGIC SEED ROUTE (To wake up the database) ---
 app.get('/seed', (req, res) => {
   const starterProducts = [
-    { name: "Sony Wireless Headphones", price: 299.99, image: "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=500" },
-    { name: "Apple Watch Series 9", price: 399.00, image: "https://images.unsplash.com/photo-1434493789847-2902a52dda8c?w=500" },
-    { name: "Mechanical Keyboard", price: 149.50, image: "https://images.unsplash.com/photo-1595225476474-87563907a212?w=500" },
-    { name: "4K Gaming Monitor", price: 450.00, image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500" }
-    // Add more here if you want!
+    { name: "Sony Noise Cancelling Headphones", price: 299.99, image: "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=500&q=80" },
+    { name: "Apple Watch Series 9", price: 399.00, image: "https://images.unsplash.com/photo-1434493789847-2902a52dda8c?w=500&q=80" },
+    { name: "RGB Mechanical Keyboard", price: 149.50, image: "https://images.unsplash.com/photo-1595225476474-87563907a212?w=500&q=80" },
+    { name: "4K Ultra-Wide Monitor", price: 450.00, image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&q=80" },
+    { name: "iPhone 15 Pro Max", price: 1199.00, image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&q=80" },
+    { name: "MacBook Pro M3", price: 1999.00, image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&q=80" },
+    { name: "Canon Mirrorless Camera", price: 899.99, image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500&q=80" },
+    { name: "DJI Mini Drone", price: 549.00, image: "https://images.unsplash.com/photo-1507580461448-fdfa493b22e1?w=500&q=80" },
+    { name: "Amazon Echo Studio", price: 199.99, image: "https://images.unsplash.com/photo-1543512214-318c7553f230?w=500&q=80" },
+    { name: "iPad Air 5th Gen", price: 599.00, image: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500&q=80" }
   ];
 
   db.serialize(() => {
-    db.run("DELETE FROM products"); // Clear old ones
+    db.run("DELETE FROM products"); // Clear old broken ones
     const stmt = db.prepare("INSERT INTO products (name, price, image) VALUES (?, ?, ?)");
     starterProducts.forEach(p => stmt.run(p.name, p.price, p.image));
     stmt.finalize();
   });
 
-  res.send("<h1>✅ SUCCESS! Database Woken Up & Seeded. Refresh your website!</h1>");
+  res.send("<h1>✅ SUCCESS! 10 Products Loaded. Refresh your website!</h1>");
 });
-
 
 // --- 6. START THE ENGINE ---
 const PORT = process.env.PORT || 5000;
